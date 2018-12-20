@@ -28,27 +28,24 @@ class Report:
 
     @staticmethod
     def pars_comment(comment):
-        if comment is None:
-            return ''
-        data = comment.__str__().split('\n')
-        return '\n'.join([f'\t{line}' for line in data])
+        return '' if comment is None else '\n'.join([f'\t{line}' for line in comment.__str__().split('\n')])
 
 
 def reporter(api, test_run):
     while True:
         data = REPORTER_QUEUE.get()
-        if isinstance(data, Report):
-            for test_id in data.ids:
-                request = {
-                    'run_id': test_run,
-                    'case_id': test_id,
-                    'status_id': constants.STATUS[data.status],
-                    'comment': data.comment,
-                    'elapsed': f'{round(data.elapsed) or 1}s'
-                }
-                api.results.add_result_for_case(**request)
-        else:
+        if not isinstance(data, Report):
             break
+
+        for test_id in data.ids:
+            request = {
+                'run_id': test_run,
+                'case_id': test_id,
+                'status_id': constants.STATUS[data.status],
+                'comment': data.comment,
+                'elapsed': f'{round(data.elapsed) or 1}s'
+            }
+            api.results.add_result_for_case(**request)
 
 
 class PyTestRail:
@@ -128,5 +125,5 @@ class PyTestRail:
 
     def stopped_report(self):
         REPORTER_QUEUE.put('stop')
-        print('\nCompleting Report Upload ...')
+        print(f'\n{colorama.Fore.YELLOW}Completing Report Upload ...{colorama.Fore.RESET}')
         self.reporter.join()
